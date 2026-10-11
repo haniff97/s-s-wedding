@@ -10,7 +10,7 @@ document.querySelector('#calendar').addEventListener('click',()=>{const text=['B
 // The cover is progressive enhancement: the invitation remains available without JavaScript.
 const opening=document.querySelector('#opening');
 const openButton=document.querySelector('#open-invitation');
-const invitationSections=[document.querySelector('header'),document.querySelector('main'),document.querySelector('footer')];
+const invitationSections=[document.querySelector('main'),document.querySelector('footer')];
 if(!location.hash){
  opening.hidden=false;document.body.classList.add('invitation-closed');
  invitationSections.forEach(section=>section.inert=true);
