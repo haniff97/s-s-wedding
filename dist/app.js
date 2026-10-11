@@ -6,3 +6,20 @@ const whatsapp=document.querySelector('#whatsapp');
 form.addEventListener('submit',e=>{e.preventDefault();if(!form.reportValidity())return;const name=form.elements.name.value.trim();if(!name){form.elements.name.setCustomValidity('Sila masukkan nama anda.');form.elements.name.reportValidity();return;}reply={name,attendance:form.elements.attendance.value,pax:form.elements.attendance.value==='Hadir'?Number(form.elements.pax.value):0,wish:form.elements.wish.value.trim(),savedAt:new Date().toISOString()};try{localStorage.setItem('syahrul-suhaila-rsvp',JSON.stringify(reply));status.textContent='Terima kasih, '+name+'. Jawapan disimpan pada peranti ini sahaja; belum dihantar kepada pengantin.';}catch{status.textContent='Jawapan tersedia untuk dimuat turun. Pelayar ini tidak membenarkan simpanan pada peranti.';}download.hidden=false;const message='Assalamualaikum Syahrul, RSVP majlis 8 November 2026.\nNama: '+reply.name+'\nKehadiran: '+reply.attendance+'\nBilangan tetamu: '+reply.pax+'\nUcapan: '+reply.wish;whatsapp.href='https://wa.me/60109173658?text='+encodeURIComponent(message);whatsapp.hidden=false;status.textContent='Jawapan disediakan. Buka WhatsApp dan tekan hantar untuk mengesahkan RSVP anda.';});form.elements.name.addEventListener('input',()=>form.elements.name.setCustomValidity(''));
 download.addEventListener('click',()=>{if(!reply)return;const text='RSVP · Syahrul & Suhaila\nNama: '+reply.name+'\nKehadiran: '+reply.attendance+'\nBilangan: '+reply.pax+'\nUcapan: '+reply.wish+'\n\nJawapan ini belum dihantar kepada pengantin.';const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='jawapan-rsvp.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
 document.querySelector('#calendar').addEventListener('click',()=>{const text=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Pink Wedding//MS','BEGIN:VEVENT','UID:syahrul-suhaila-20261108','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),'DTSTART;VALUE=DATE:20261108','DTEND;VALUE=DATE:20261109','SUMMARY:Majlis perkahwinan Syahrul & Suhaila','DESCRIPTION:Berdekatan Masjid Darul Hidayah - Kampung Skim Cocos - 91027 Kunak - Sabah. Masa akan dimaklumkan.','END:VEVENT','END:VCALENDAR'].join('\r\n');const url=URL.createObjectURL(new Blob([text],{type:'text/calendar'}));const a=document.createElement('a');a.href=url;a.download='syahrul-suhaila.ics';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+
+// The cover is progressive enhancement: the invitation remains available without JavaScript.
+const opening=document.querySelector('#opening');
+const openButton=document.querySelector('#open-invitation');
+const invitationSections=[document.querySelector('header'),document.querySelector('main'),document.querySelector('footer')];
+if(!location.hash){
+ opening.hidden=false;document.body.classList.add('invitation-closed');
+ invitationSections.forEach(section=>section.inert=true);
+ openButton.focus({preventScroll:true});
+ let opened=false;
+ const reveal=()=>{if(opened)return;opened=true;openButton.disabled=true;opening.classList.add('is-opening');
+ const finish=()=>{opening.hidden=true;document.body.classList.remove('invitation-closed');invitationSections.forEach(section=>section.inert=false);const title=document.querySelector('h1');title.setAttribute('tabindex','-1');title.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});};
+ setTimeout(finish,window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:1550);
+ };
+ openButton.addEventListener('click',reveal);
+ opening.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();reveal();}if(e.key==='Tab'){e.preventDefault();openButton.focus();}});
+}
