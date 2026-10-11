@@ -21,7 +21,7 @@ if(!location.hash){
  openButton.focus({preventScroll:true});
  let opened=false;
  const reveal=()=>{if(opened)return;opened=true;openButton.disabled=true;opening.classList.add('is-opening');
- const finish=()=>{opening.hidden=true;document.body.classList.remove('invitation-closed');invitationSections.forEach(section=>section.inert=false);const title=document.querySelector('h1');title.setAttribute('tabindex','-1');title.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});};
+ const finish=()=>{opening.hidden=true;document.body.classList.remove('invitation-closed');document.dispatchEvent(new Event('invitation-opened'));invitationSections.forEach(section=>section.inert=false);const title=document.querySelector('h1');title.setAttribute('tabindex','-1');title.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});};
  setTimeout(finish,window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:700);
  };
  openButton.addEventListener('click',reveal);
@@ -30,3 +30,13 @@ if(!location.hash){
 
 async function loadMessages(){const messageStatus=document.querySelector('#guestbook-status');const list=document.querySelector('#guest-messages');try{const response=await fetch('/api/rsvp',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error);list.replaceChildren();for(const message of data.messages){const card=document.createElement('article');card.className='guest-message';const top=document.createElement('div');top.className='guest-message-top';const name=document.createElement('h3');name.textContent=message.name;const badge=document.createElement('small');badge.textContent=message.attendance==='Hadir'?'♡ Akan hadir':'Doa dari jauh';top.append(name,badge);const wish=document.createElement('p');wish.textContent=message.wish;const date=document.createElement('time');date.dateTime=new Date(message.created_at).toISOString();date.textContent=new Intl.DateTimeFormat('ms-MY',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Kuala_Lumpur'}).format(message.created_at);card.append(top,wish,date);list.append(card);}messageStatus.textContent=data.messages.length?'':'Belum ada ucapan. Jadilah yang pertama menitipkan doa buat pengantin.';}catch(error){messageStatus.textContent=error.message||'Ucapan belum dapat dimuatkan. Sila cuba lagi.';}}
 document.querySelector('#refresh-messages').addEventListener('click',loadMessages);loadMessages();
+// Reveal once per visit; all content stays visible when motion is disabled.
+function startScrollMotion(){
+if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window){
+ const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target);}}},{threshold:.08,rootMargin:'0px 0px -25px 0px'});
+ const targets=document.querySelectorAll('.hero > *, .invitation > *, .details > *, .programme > .eyebrow, .programme > h2, .programme > p, .simple-timeline article, .rsvp-copy > *, #rsvp-form, .guestbook > .eyebrow, .guestbook > h2, .guestbook > p, .closing > *');
+ targets.forEach((element,index)=>{element.classList.add('reveal-motion');element.style.setProperty('--reveal-delay',Math.min(index%3*70,140)+'ms');observer.observe(element);});
+}
+
+}
+if(opening.hidden){startScrollMotion();}else{document.addEventListener('invitation-opened',startScrollMotion,{once:true});}
