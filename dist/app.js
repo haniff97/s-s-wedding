@@ -18,7 +18,7 @@ if(!location.hash){
  let opened=false;
  const reveal=()=>{if(opened)return;opened=true;openButton.disabled=true;opening.classList.add('is-opening');
  const finish=()=>{opening.hidden=true;document.body.classList.remove('invitation-closed');invitationSections.forEach(section=>section.inert=false);const title=document.querySelector('h1');title.setAttribute('tabindex','-1');title.focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});};
- setTimeout(finish,window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:1550);
+ setTimeout(finish,window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:700);
  };
  openButton.addEventListener('click',reveal);
  opening.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();reveal();}if(e.key==='Tab'){e.preventDefault();openButton.focus();}});
