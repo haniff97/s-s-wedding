@@ -40,3 +40,10 @@ if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'Intersecti
 
 }
 if(opening.hidden){startScrollMotion();}else{document.addEventListener('invitation-opened',startScrollMotion,{once:true});}
+
+const sectionLinks=[...document.querySelectorAll('.section-indicator a')];
+const readingSections=sectionLinks.map(link=>document.querySelector(link.getAttribute('href')));
+let indicatorFrame=0;
+function updateIndicator(){indicatorFrame=0;const marker=window.innerHeight*.4;let active=0;readingSections.forEach((section,index)=>{if(section.getBoundingClientRect().top<=marker)active=index;});const total=document.documentElement.scrollHeight-window.innerHeight;const progress=total>0?Math.max(0,Math.min(1,window.scrollY/total)):0;if(progress>.99)active=readingSections.length-1;sectionLinks.forEach((link,index)=>{if(index===active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});document.querySelector('#reading-progress').style.transform='scaleY('+progress+')';}
+function scheduleIndicator(){if(!indicatorFrame)indicatorFrame=requestAnimationFrame(updateIndicator);}
+window.addEventListener('scroll',scheduleIndicator,{passive:true});window.addEventListener('resize',scheduleIndicator);window.addEventListener('load',scheduleIndicator);document.addEventListener('invitation-opened',scheduleIndicator);new ResizeObserver(scheduleIndicator).observe(document.querySelector('main'));updateIndicator();
