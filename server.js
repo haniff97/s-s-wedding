@@ -66,6 +66,7 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
   '.gif': 'image/gif',
   '.webp': 'image/webp',
+  '.woff2': 'font/woff2',
 };
 
 const server = http.createServer(async (req, res) => {
@@ -269,6 +270,14 @@ function serveStaticFile(req, res, targetPath) {
     const mtime = fileStats.mtime.toUTCString();
     const etag = `W/"${fileStats.size.toString(16)}-${fileStats.mtimeMs.toString(16)}"`;
 
+    // Revalidate HTML, CSS and JS so a deployment cannot leave an old design cached.
+    const cacheControl = isHtml || ['.css', '.js', '.mjs'].includes(ext)
+      ? 'no-cache'
+      : isImmutable ? 'public, max-age=31536000, immutable' : 'public, max-age=86400';
+    res.setHeader('Cache-Control', cacheControl);
+    res.setHeader('ETag', etag);
+    res.setHeader('Last-Modified', mtime);
+
     // 304 Not Modified check
     if (req.headers['if-none-match'] === etag || req.headers['if-modified-since'] === mtime) {
       res.writeHead(304);
@@ -276,11 +285,6 @@ function serveStaticFile(req, res, targetPath) {
       return;
     }
 
-    const cacheControl = isImmutable
-      ? 'public, max-age=31536000, immutable'
-      : isHtml
-        ? 'public, max-age=120, stale-while-revalidate=600'
-        : 'public, max-age=86400';
 
     const cached = staticCache.get(resolvedPath);
     if (cached && cached.mtimeMs === fileStats.mtimeMs) {

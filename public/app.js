@@ -29,13 +29,14 @@ if(!location.hash){
 }
 
 async function loadMessages(){const messageStatus=document.querySelector('#guestbook-status');const list=document.querySelector('#guest-messages');try{const response=await fetch('/api/rsvp',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error);list.replaceChildren();for(const message of data.messages){const card=document.createElement('article');card.className='guest-message';const top=document.createElement('div');top.className='guest-message-top';const name=document.createElement('h3');name.textContent=message.name;const badge=document.createElement('small');badge.textContent=message.attendance==='Hadir'?'♡ Akan hadir':'Doa dari jauh';top.append(name,badge);const wish=document.createElement('p');wish.textContent=message.wish;const date=document.createElement('time');date.dateTime=new Date(message.created_at).toISOString();date.textContent=new Intl.DateTimeFormat('ms-MY',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Kuala_Lumpur'}).format(message.created_at);card.append(top,wish,date);list.append(card);}messageStatus.textContent=data.messages.length?'':'Belum ada ucapan. Jadilah yang pertama menitipkan doa buat pengantin.';}catch(error){messageStatus.textContent=error.message||'Ucapan belum dapat dimuatkan. Sila cuba lagi.';}}
-document.querySelector('#refresh-messages').addEventListener('click',loadMessages);loadMessages();
+document.querySelector('#refresh-messages').addEventListener('click',loadMessages);
+if('IntersectionObserver' in window){const messageObserver=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){messageObserver.disconnect();loadMessages();}},{rootMargin:'300px'});messageObserver.observe(document.querySelector('#guestbook'));}else{loadMessages();}
 // Reveal once per visit; all content stays visible when motion is disabled.
 function startScrollMotion(){
 if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window){
  const observer=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target);}}},{threshold:.08,rootMargin:'0px 0px -25px 0px'});
- const targets=document.querySelectorAll('.hero > *, .invitation > *, .details > *, .programme > .eyebrow, .programme > h2, .programme > p, .simple-timeline article, .rsvp-copy > *, #rsvp-form, .guestbook > .eyebrow, .guestbook > h2, .guestbook > p, .closing > *');
- targets.forEach((element,index)=>{element.classList.add('reveal-motion');element.style.setProperty('--reveal-delay',Math.min(index%3*70,140)+'ms');observer.observe(element);});
+ const targets=document.querySelectorAll('.invitation > *, .details > *, .programme > .eyebrow, .programme > h2, .programme > p, .simple-timeline article, .rsvp-copy > *, #rsvp-form, .guestbook > .eyebrow, .guestbook > h2, .guestbook > p, .closing > *');
+ targets.forEach((element,index)=>{if(element.getBoundingClientRect().top<window.innerHeight)return;element.classList.add('reveal-motion');element.style.setProperty('--reveal-delay',Math.min(index%3*70,140)+'ms');observer.observe(element);});
 }
 
 }
