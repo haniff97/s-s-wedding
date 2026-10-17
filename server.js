@@ -232,26 +232,95 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  fs.stat(filePath, (err, stats) => {
+  // Handle client abort / disconnect to prevent EPIPE errors
+  res.on('error', () => {});
+  req.on('error', () => {});
+
+  serveStaticFile(req, res, filePath);
+});
+
+// In-memory cache for static files
+const staticCache = new Map();
+
+function serveStaticFile(req, res, targetPath) {
+  fs.stat(targetPath, (err, stats) => {
+    let resolvedPath = targetPath;
+    let fileStats = stats;
+
     if (err || !stats.isFile()) {
-      // Fallback to index.html for client routing
-      filePath = path.join(PUBLIC_DIR, 'index.html');
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (readErr, content) => {
-      if (readErr) {
+      resolvedPath = path.join(PUBLIC_DIR, 'index.html');
+      try {
+        fileStats = fs.statSync(resolvedPath);
+      } catch {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
         res.end('Not Found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': contentType });
+    }
+
+    const ext = path.extname(resolvedPath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const isHtml = ext === '.html';
+    const isImmutable = !isHtml && (
+      resolvedPath.includes('/assets/') ||
+      ['.webp', '.png', '.jpg', '.jpeg', '.svg', '.gif', '.ico', '.woff2'].includes(ext)
+    );
+
+    const mtime = fileStats.mtime.toUTCString();
+    const etag = `W/"${fileStats.size.toString(16)}-${fileStats.mtimeMs.toString(16)}"`;
+
+    // 304 Not Modified check
+    if (req.headers['if-none-match'] === etag || req.headers['if-modified-since'] === mtime) {
+      res.writeHead(304);
+      res.end();
+      return;
+    }
+
+    const cacheControl = isImmutable
+      ? 'public, max-age=31536000, immutable'
+      : isHtml
+        ? 'public, max-age=120, stale-while-revalidate=600'
+        : 'public, max-age=86400';
+
+    const cached = staticCache.get(resolvedPath);
+    if (cached && cached.mtimeMs === fileStats.mtimeMs) {
+      if (res.writableEnded) return;
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': cached.buffer.length,
+        'Cache-Control': cacheControl,
+        'ETag': etag,
+        'Last-Modified': mtime,
+      });
+      res.end(cached.buffer);
+      return;
+    }
+
+    fs.readFile(resolvedPath, (readErr, content) => {
+      if (readErr || res.writableEnded) {
+        if (!res.writableEnded) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not Found');
+        }
+        return;
+      }
+
+      // Cache files smaller than 10MB in memory
+      if (content.length < 10 * 1024 * 1024) {
+        staticCache.set(resolvedPath, { buffer: content, mtimeMs: fileStats.mtimeMs });
+      }
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Content-Length': content.length,
+        'Cache-Control': cacheControl,
+        'ETag': etag,
+        'Last-Modified': mtime,
+      });
       res.end(content);
     });
   });
-});
+}
 
 server.listen(PORT, HOST, () => {
   console.log(`Wedding Server running at http://${HOST}:${PORT}`);
