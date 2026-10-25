@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { createRsvpExcelExporter } from './lib/rsvp-excel.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,16 @@ function getJsonRsvps() {
 function saveJsonRsvps(data) {
   fs.writeFileSync(JSON_DB_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
+
+const EXCEL_FILE = path.join(__dirname, 'exports', 'rsvp-syahrul-suhaila.xlsx');
+const refreshExcel = createRsvpExcelExporter({
+  filename: EXCEL_FILE,
+  readRows: () => !useJsonStore && db
+    ? db.prepare('SELECT name, attendance, pax, wish, visible, created_at FROM rsvps ORDER BY created_at ASC').all()
+    : getJsonRsvps().sort((a, b) => a.created_at - b.created_at),
+});
+await refreshExcel();
+console.log('Private RSVP Excel snapshot:', EXCEL_FILE);
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -157,6 +168,7 @@ const server = http.createServer(async (req, res) => {
             const checkStmt = db.prepare('SELECT id FROM rsvps WHERE id = ?');
             const existing = checkStmt.get(data.id);
             if (existing) {
+              await refreshExcel();
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ ok: true }));
               return;
@@ -186,6 +198,7 @@ const server = http.createServer(async (req, res) => {
           } else {
             const list = getJsonRsvps();
             if (list.some(r => r.id === data.id)) {
+              await refreshExcel();
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ ok: true }));
               return;
@@ -211,6 +224,7 @@ const server = http.createServer(async (req, res) => {
             saveJsonRsvps(list);
           }
 
+          await refreshExcel();
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (err) {
@@ -327,5 +341,5 @@ function serveStaticFile(req, res, targetPath) {
 }
 
 server.listen(PORT, HOST, () => {
-  console.log(`Wedding Server running at http://${HOST}:${PORT}`);
+  console.log(`Wedding Server running at http://${HOST}:${server.address().port}`);
 });

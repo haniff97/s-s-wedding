@@ -124,3 +124,18 @@ The portable build runs Vinext directly without a host `timeout` command. The ma
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## Private RSVP Excel file (standalone server)
+
+`npm start` / `node server.js` keeps the existing database and automatically writes
+`exports/rsvp-syahrul-suhaila.xlsx` on startup and after every saved RSVP.
+The workbook contains total attending (sum of party sizes), response counts, names,
+attendance, messages (including private messages), visibility consent, and Malaysia timestamps.
+It is a generated snapshot; edits in Excel are overwritten at the next update.
+The file is outside `public/` and is not downloadable through the guest website.
+Copy it from the server using SFTP/SCP when needed. Guest phone numbers are not stored.
+
+Install dependencies after pulling: `npm ci --include=dev`. Restart the PM2 process
+that serves this checkout. No frontend build is needed for the standalone server.
+Keep `rsvps.db` (or `rsvps.json` on the fallback runtime) in place during updates.
+Excel, database and JSON data files are excluded from Git.

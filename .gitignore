@@ -54,3 +54,8 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+
+# Private guest records and generated Excel snapshots
+/rsvps.db*
+/rsvps.json
+/exports/
