@@ -49,7 +49,7 @@ function updateIndicator(){indicatorFrame=0;const marker=window.innerHeight*.4;l
 function scheduleIndicator(){if(!indicatorFrame)indicatorFrame=requestAnimationFrame(updateIndicator);}
 window.addEventListener('scroll',scheduleIndicator,{passive:true});window.addEventListener('resize',scheduleIndicator);window.addEventListener('load',scheduleIndicator);document.addEventListener('invitation-opened',scheduleIndicator);new ResizeObserver(scheduleIndicator).observe(document.querySelector('main'));updateIndicator();
 
-// Load YouTube only after a guest explicitly opens the invitation or taps music.
+// Attempt background playback after the page loads; retain gesture fallbacks.
 const musicToggle=document.querySelector('#music-toggle');
 const musicLabel=document.querySelector('#music-label');
 let musicPlayer=null,musicRequested=false,musicReady=false,musicPlaying=false;
@@ -64,3 +64,5 @@ function startBackgroundMusic(){
 }
 openButton.addEventListener('click',startBackgroundMusic,{once:true});
 musicToggle.addEventListener('click',()=>{if(musicPlaying&&musicReady){musicRequested=false;musicPlayer.pauseVideo();}else startBackgroundMusic();});
+
+if(document.readyState==='complete'){startBackgroundMusic();}else{window.addEventListener('load',startBackgroundMusic,{once:true});}
