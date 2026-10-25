@@ -53,7 +53,7 @@ window.addEventListener('scroll',scheduleIndicator,{passive:true});window.addEve
 const musicToggle=document.querySelector('#music-toggle');
 const musicLabel=document.querySelector('#music-label');
 let musicPlayer=null,musicRequested=false,musicReady=false,musicPlaying=false;
-function showMusicState(playing){musicPlaying=playing;musicToggle.setAttribute('aria-pressed',String(playing));musicToggle.setAttribute('aria-label',playing?'Jeda muzik':'Mainkan muzik');musicLabel.textContent=playing?'Jeda muzik':'Mainkan muzik';}
+function showMusicState(playing){musicPlaying=playing;musicToggle.setAttribute('aria-pressed',String(playing));musicToggle.setAttribute('aria-label','Play music');musicLabel.textContent='Play music';}
 function startBackgroundMusic(){
  musicRequested=true;
  if(musicReady){musicPlayer.playVideo();return;}
