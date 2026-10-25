@@ -48,3 +48,19 @@ let indicatorFrame=0;
 function updateIndicator(){indicatorFrame=0;const marker=window.innerHeight*.4;let active=0;readingSections.forEach((section,index)=>{if(section.getBoundingClientRect().top<=marker)active=index;});const total=document.documentElement.scrollHeight-window.innerHeight;const progress=total>0?Math.max(0,Math.min(1,window.scrollY/total)):0;if(progress>.99)active=readingSections.length-1;sectionLinks.forEach((link,index)=>{if(index===active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});document.querySelector('#reading-progress').style.transform='scaleY('+progress+')';}
 function scheduleIndicator(){if(!indicatorFrame)indicatorFrame=requestAnimationFrame(updateIndicator);}
 window.addEventListener('scroll',scheduleIndicator,{passive:true});window.addEventListener('resize',scheduleIndicator);window.addEventListener('load',scheduleIndicator);document.addEventListener('invitation-opened',scheduleIndicator);new ResizeObserver(scheduleIndicator).observe(document.querySelector('main'));updateIndicator();
+
+// Load YouTube only after a guest explicitly opens the invitation or taps music.
+const musicToggle=document.querySelector('#music-toggle');
+const musicLabel=document.querySelector('#music-label');
+let musicPlayer=null,musicRequested=false,musicReady=false,musicPlaying=false;
+function showMusicState(playing){musicPlaying=playing;musicToggle.setAttribute('aria-pressed',String(playing));musicToggle.setAttribute('aria-label',playing?'Jeda muzik':'Mainkan muzik');musicLabel.textContent=playing?'Jeda muzik':'Mainkan muzik';}
+function startBackgroundMusic(){
+ musicRequested=true;
+ if(musicReady){musicPlayer.playVideo();return;}
+ if(document.querySelector('#youtube-music-api'))return;
+ musicLabel.textContent='Memuatkan muzik…';
+ window.onYouTubeIframeAPIReady=()=>{musicPlayer=new YT.Player('background-player',{width:1,height:1,videoId:'sBiSqt8k3U4',playerVars:{autoplay:1,controls:0,playsinline:1,loop:1,playlist:'sBiSqt8k3U4',origin:location.origin},events:{onReady:()=>{musicReady=true;const frame=musicPlayer.getIframe();frame.classList.add('background-player');frame.setAttribute('tabindex','-1');frame.setAttribute('aria-hidden','true');frame.setAttribute('allow','autoplay; encrypted-media');if(musicRequested)musicPlayer.playVideo();},onStateChange:event=>{if(event.data===YT.PlayerState.PLAYING)showMusicState(true);else if(event.data===YT.PlayerState.PAUSED||event.data===YT.PlayerState.ENDED)showMusicState(false);},onAutoplayBlocked:()=>showMusicState(false),onError:()=>{showMusicState(false);musicLabel.textContent='Cuba main semula';}}});};
+ const script=document.createElement('script');script.id='youtube-music-api';script.src='https://www.youtube.com/iframe_api';script.async=true;script.onerror=()=>{script.remove();musicLabel.textContent='Cuba main semula';};document.head.append(script);
+}
+openButton.addEventListener('click',startBackgroundMusic,{once:true});
+musicToggle.addEventListener('click',()=>{if(musicPlaying&&musicReady){musicRequested=false;musicPlayer.pauseVideo();}else startBackgroundMusic();});
